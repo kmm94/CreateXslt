@@ -74,13 +74,13 @@ namespace CreateXslt
 
                 }
 
-                string shitXsl = $"<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                                 "\n<xsl:stylesheet version=\"1.0\" xmlns:xsl=http://www.w3.org/1999/XSL/Transform xmlns:msxsl=\"urn:schemas-microsoft-com:xslt\" exclude-result-prefixes=\"msxsl\">" +
+                string shitXsl = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                                 "\n<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:msxsl=\"urn:schemas-microsoft-com:xslt\" exclude-result-prefixes=\"msxsl\">" +
                                  "\n                <xsl:output method=\"xml\" indent=\"yes\" omit-xml-declaration=\"no\"/>" +
                                  "\n                <xsl:template match=\"/\">" +
                                  "\n                                <!--Sæt <?mso-application progid=\"Excel.Sheet\"?>-->" +
                                  "\n                                <xsl:processing-instruction name=\"mso-application\">progid=\"Excel.Sheet\"</xsl:processing-instruction>" +
-                                 "\n                                <Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=http://www.w3.org/TR/REC-html40>" +
+                                 "\n                                <Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">" +
                                  "\n                                                <DocumentProperties xmlns=\"urn:schemas-microsoft-com:office:office\">" +
                                  "\n                                                                <Author>Netcompany</Author>" +
                                  "\n                                                                <LastAuthor>karm@netcompany.com</LastAuthor>" +
@@ -216,7 +216,7 @@ namespace CreateXslt
 
             foreach (Column reportColumn in reportColumns)
             {
-                columnText += "                                                                                <Column ss:AutoFitWidth=\"0\" ss:Width=\"100\"/>";
+                columnText += "\n                                                                                <Column ss:AutoFitWidth=\"0\" ss:Width=\"100\"/>";
             }
 
             return columnText;
@@ -245,13 +245,30 @@ namespace CreateXslt
 
             foreach (Column reportColumn in reportColumns)
             {
-                columnText +=
-                    "\n                                                                                                                                <Cell>" +
-                    $"\n                                                                                                                                                <Data ss:Type=\"{reportColumn.datatype}\">" +
-                    $"\n                                                                                                                                                                <xsl:value-of select=\"{reportColumn.sqlQueryHeadline}\"/>" +
-                    "\n                                                                                                                                                </Data>" +
-                    "\n                                                                                                                                                <NamedCell ss:Name=\"_FilterDatabase\"/>" +
-                    "\n                                                                                                                                </Cell>";
+
+                if (Datatype.Date == reportColumn.datatype)
+                {
+                    columnText += "<Cell ss:StyleID=\"s69\">\n" +
+                                  "                            <xsl:choose>\n" +
+                                  $"                                <xsl:when test=\"{reportColumn.sqlQueryHeadline} != ''\">\n" +
+                                  "                                    <Data ss:Type=\"DateTime\">\n" +
+                                  $"                                        <xsl:value-of select=\"{reportColumn.sqlQueryHeadline}\"/>\n" +
+                                  "                                    </Data>\n" +
+                                  "                                </xsl:when>\n" +
+                                  "                            </xsl:choose>\n" +
+                                  "                            <NamedCell ss:Name=\"_FilterDatabase\"/>\n" +
+                                  "                        </Cell>";
+                }
+                else if(Datatype.String == reportColumn.datatype || Datatype.Number == reportColumn.datatype)
+                {
+                    columnText +=
+                        "\n                                                                                                                                <Cell>" +
+                        $"\n                                                                                                                                                <Data ss:Type=\"{reportColumn.datatype}\">" +
+                        $"\n                                                                                                                                                                <xsl:value-of select=\"{reportColumn.sqlQueryHeadline}\"/>" +
+                        "\n                                                                                                                                                </Data>" +
+                        "\n                                                                                                                                                <NamedCell ss:Name=\"_FilterDatabase\"/>" +
+                        "\n                                                                                                                                </Cell>";
+                }
             }
 
             return columnText;
