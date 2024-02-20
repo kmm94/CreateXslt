@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using DataAccess;
+using NStack;
+using Terminal.Gui;
 
 namespace CreateXslt
 {
@@ -9,14 +11,38 @@ namespace CreateXslt
     {
         public static void Main(string[] args)
         {
+       /*     Application.Init ();
+            OpenDialog openFileDialog = new OpenDialog("test", "test", new List<string>(){".csv"}, OpenDialog.OpenMode.File);
+            
+            
+
+            var menu = new MenuBar (new MenuBarItem [] {
+                new MenuBarItem ("_File", new MenuItem [] {
+                    new MenuItem ("open csv file", "", () =>
+                    {
+                        Application.Run(openFileDialog);})
+                        
+                    }),
+            });
+            
+            var win = new Window ("column attributes") {
+                X = 0,
+                Y = 1,
+                Width = Dim.Fill (),
+                Height = Dim.Fill () - 1
+            };
+            
+            Application.Top.Add (menu, win);
+            Application.Run ();
+            */
+       
             Console.WriteLine("Start");
             if (args == null || args.Length == 0)
             {
                 Console.WriteLine("Please specify a filename as a parameter. ex: .\\CreateXslt.exe Mappe1.csv");
                 return;
             }
-
-            var fileContents = File.ReadAllText(args[0]);
+            
             var dataTable = DataTable.New.ReadLazy(args[0]);
 
             List<Column> columns = new List<Column>();
@@ -74,6 +100,8 @@ namespace CreateXslt
 
                 }
 
+                CreateReportInputImportFile(report);
+                
                 string shitXsl = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                                  "\n<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:msxsl=\"urn:schemas-microsoft-com:xslt\" exclude-result-prefixes=\"msxsl\">" +
                                  "\n                <xsl:output method=\"xml\" indent=\"yes\" omit-xml-declaration=\"no\"/>" +
@@ -196,7 +224,41 @@ namespace CreateXslt
                 
             }
         }
-        
+
+        private static void CreateReportInputImportFile(Report report)
+        {
+            List<CRMReportInput> crmReportInputs = new List<CRMReportInput>();
+            report.columns.ForEach(column => crmReportInputs.Add(GetCrmReportInput(column)));
+            
+            var csv = DataTable.New.FromEnumerable(crmReportInputs);
+            csv.SaveCSV("./CRMRapport Input.csv");
+        }
+
+        private static CRMReportInput GetCrmReportInput(Column column)
+        {
+            switch (column.datatype)
+            {
+                case Datatype.String:
+                    return CreateCrmReportInput(column, "Text");
+                case Datatype.Date:
+                    return CreateCrmReportInput(column, "Dato");
+                case Datatype.Number:
+                    return CreateCrmReportInput(column, "Decimaltal");
+                default:
+                    return CreateCrmReportInput(column, "Text");
+            }
+        }
+
+        private static CRMReportInput CreateCrmReportInput(Column column, string inputtype)
+        {
+            return new CRMReportInput()
+            {
+                navn = column.sqlQueryHeadline,
+                visningsnavn = column.sqlQueryHeadline,
+                Inputype = inputtype
+            };
+        }
+
         private static string GetAllDatatypes()
         {
             string DatatypesText = "";
