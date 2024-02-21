@@ -11,56 +11,69 @@ namespace CreateXslt
     {
         public static void Main(string[] args)
         {
-       /*     Application.Init ();
-            OpenDialog openFileDialog = new OpenDialog("test", "test", new List<string>(){".csv"}, OpenDialog.OpenMode.File);
-            
-            
+            Application.Init();
+            OpenDialog openFileDialog = new OpenDialog("CSV", "Select the csv file produced by the sql",
+                new List<string>() { ".csv" }, OpenDialog.OpenMode.File);
+            openFileDialog.AllowsMultipleSelection = false;
 
-            var menu = new MenuBar (new MenuBarItem [] {
-                new MenuBarItem ("_File", new MenuItem [] {
-                    new MenuItem ("open csv file", "", () =>
+            ListView columnListView = new ListView()
+            {
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+            };
+            ReportController reportController = new ReportController();
+
+            var menu = new MenuBar(new MenuBarItem[]
+            {
+                new MenuBarItem("_File", new MenuItem[]
+                {
+                    new MenuItem("open csv file", "", () =>
                     {
-                        Application.Run(openFileDialog);})
-                        
-                    }),
+                        Application.Run(openFileDialog);
+                        if (openFileDialog.FilePaths.Count == 1)
+                        {
+                            reportController.LoadCsv(DataTable.New.ReadLazy(openFileDialog.FilePaths[0]));
+                            Application.MainLoop.Invoke(() =>
+                            {
+                                columnListView.SetSource(reportController.GetExcelWorksheet().columns);
+                            });
+                        }
+
+
+                    })
+
+                }),
             });
-            
-            var win = new Window ("column attributes") {
+
+            var columnNames = new Window("column Names")
+            {
                 X = 0,
                 Y = 1,
-                Width = Dim.Fill (),
-                Height = Dim.Fill () - 1
+                Width = Dim.Percent(40),
+                Height = Dim.Fill() - 1
             };
             
-            Application.Top.Add (menu, win);
-            Application.Run ();
-            */
-       
-            Console.WriteLine("Start");
-            if (args == null || args.Length == 0)
-            {
-                Console.WriteLine("Please specify a filename as a parameter. ex: .\\CreateXslt.exe Mappe1.csv");
-                return;
-            }
+            columnNames.Add(columnListView);
             
-            var dataTable = DataTable.New.ReadLazy(args[0]);
-
-            List<Column> columns = new List<Column>();
-
-            Console.WriteLine("Found columns:");
-            foreach (string columnName in dataTable.ColumnNames)
+            var columnAttributes = new Window("column Attributes")
             {
-                Console.WriteLine(columnName);
-                columns.Add(new Column(columnName, columnName));
-            }
+                X = Pos.Right(columnNames),
+                Y = 1,
+                Width = Dim.Percent(60),
+                Height = Dim.Fill() - 1
+            };
 
-            Report report;
-            Console.WriteLine($"Input report name: ");
-            report = new Report(columns, Console.ReadLine());
 
-            Console.WriteLine($"Total Columns: {columns.Count}");
+            
+            Application.Top.Add(menu);
+            Application.Current.Add(columnNames, columnAttributes);
+            Application.Run();
 
-            foreach (Column column in report.columns)
+
+
+
+/*
+            foreach (Column column in excelWorksheet.columns)
             {
                 bool IsHandlingColumn = true;
                 while (IsHandlingColumn)
@@ -100,7 +113,9 @@ namespace CreateXslt
 
                 }
 
-                CreateReportInputImportFile(report);
+
+            }
+                            CreateReportInputImportFile(excelWorksheet);
                 
                 string shitXsl = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                                  "\n<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:msxsl=\"urn:schemas-microsoft-com:xslt\" exclude-result-prefixes=\"msxsl\">" +
@@ -170,23 +185,23 @@ namespace CreateXslt
                                  "\n                                                                                <NumberFormat ss:Format=\"@\"/>" +
                                  "\n                                                                </Style>" +
                                  "\n                                                </Styles>" +
-                                 $"\n                                                <Worksheet ss:Name=\"{report.name}\">" +
+                                 $"\n                                                <Worksheet ss:Name=\"{excelWorksheet.name}\">" +
                                  "\n                                                                <Names>" +
-                                 $"\n                                                                                <NamedRange ss:Name=\"_FilterDatabase\" ss:RefersTo=\"={report.name}!R2C1:R[{{count(/ReportDto/ReportRows)}}]C11\" ss:Hidden=\"1\"/>" +
+                                 $"\n                                                                                <NamedRange ss:Name=\"_FilterDatabase\" ss:RefersTo=\"={excelWorksheet.name}!R2C1:R[{{count(/ReportDto/ReportRows)}}]C11\" ss:Hidden=\"1\"/>" +
                                  "\n                                                                </Names>" +
                                  "\n                                                                <Table  x:FullColumns=\"1\" x:FullRows=\"1\" ss:DefaultRowHeight=\"15\">" +
-                                 $"\n{GetXslColumns(report.columns)}" +
+                                 $"\n{GetXslColumns(excelWorksheet.columns)}" +
                                  "\n                                                                                <Row ss:AutoFitHeight=\"0\" ss:Height=\"18.75\">" +
                                  "\n                                                                                                <Cell ss:StyleID=\"s62\">" +
                                  "\n                                                                                                                <Data ss:Type=\"String\">Begrænsninger på medlemmer</Data>" +
                                  "\n                                                                                                </Cell>" +
                                  "\n                                                                                </Row>" +
                                  "\n                                                                                <Row ss:AutoFitHeight=\"0\">" +
-                                 $"\n{GetXslHeaders(report.columns)}"+
+                                 $"\n{GetXslHeaders(excelWorksheet.columns)}"+
                                  "\n                                                                                </Row>" +
                                  "\n                                                                                <xsl:for-each select=\"ReportDto/ReportRows/Row\">" +
                                  "\n                                                                                                                <Row ss:AutoFitHeight=\"0\">" +
-                                 $"\n{GetSqlHeadline(report.columns)}"+
+                                 $"\n{GetSqlHeadline(excelWorksheet.columns)}"+
                                  "\n                                                                                                                </Row>" +
                                  "\n                                                                                </xsl:for-each>" +
                                  "\n                                                                </Table>" +
@@ -209,7 +224,7 @@ namespace CreateXslt
                                  "\n                                                                </WorksheetOptions>" +
                                  "\n                                                                <xsl:if test=\"count(/ReportDto/ReportRows/Row) != 0\">" +
                                  "\n                                                                                <AutoFilter x:Range=\"R2C1:R[{count(/ReportDto/ReportRows/Row)}]" +
-                                 $"C{report.columns.Count}\"" +
+                                 $"C{excelWorksheet.columns.Count}\"" +
                                  " xmlns=\"urn:schemas-microsoft-com:office:excel\">" +
                                  "\n                                                                                </AutoFilter>" +
                                  "\n                                                                </xsl:if>" +
@@ -221,14 +236,15 @@ namespace CreateXslt
 
                 // Write the text to a new file named "WriteFile.txt".
                 File.WriteAllText( "WriteFile.xml", shitXsl);
-                
-            }
+                */
         }
 
-        private static void CreateReportInputImportFile(Report report)
+/*
+
+        private static void CreateReportInputImportFile(ExcelWorksheet excelWorksheet)
         {
             List<CRMReportInput> crmReportInputs = new List<CRMReportInput>();
-            report.columns.ForEach(column => crmReportInputs.Add(GetCrmReportInput(column)));
+            excelWorksheet.columns.ForEach(column => crmReportInputs.Add(GetCrmReportInput(column)));
             
             var csv = DataTable.New.FromEnumerable(crmReportInputs);
             csv.SaveCSV("./CRMRapport Input.csv");
@@ -335,5 +351,7 @@ namespace CreateXslt
 
             return columnText;
         }
+    }
+    */
     }
 }

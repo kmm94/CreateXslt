@@ -19,5 +19,10 @@
             this.name = name;
             this.datatype = datatype;
         }
+
+        public override string ToString()
+        {
+            return sqlQueryHeadline;
+        }
     }
 }
