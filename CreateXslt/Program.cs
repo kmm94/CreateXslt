@@ -48,8 +48,8 @@ namespace CreateXslt
             var columnNames = new Window("column Names")
             {
                 X = 0,
-                Y = 1,
-                Width = Dim.Percent(40),
+                Y = 0,
+                Width = Dim.Percent(30),
                 Height = Dim.Fill() - 1
             };
             
@@ -58,15 +58,25 @@ namespace CreateXslt
             var columnAttributes = new Window("column Attributes")
             {
                 X = Pos.Right(columnNames),
-                Y = 1,
-                Width = Dim.Percent(60),
+                Y = 0,
+                Width = Dim.Percent(70),
                 Height = Dim.Fill() - 1
             };
-
+            //TODO: Add Column attributes:
+            //TODO: Display, Sql column name label
+            //TODO: Input, Text field excel column headName
+            //TODO: Input, Radiobuttons Excel filter type
+            //TODO: Input, Radiobuttons 'RapportInput' 
+            //TODO: Display, ColumnName validation(Display Error)
+            //TODO: Logic, Guesstimate excel column headName, replace _ with space
+            //TODO: Validation between filter and rapport input data types
+            //TODO: Logic, Guesstimate, filter type and report input type
+            //TODO: Logic, Generate XML transformation text
+            //TODO: Logic, Generate ReportInput import to crm csv file
+            //TODO: Logic, Generate select part of sql with castings for decimal numbers
 
             
-            Application.Top.Add(menu);
-            Application.Current.Add(columnNames, columnAttributes);
+            Application.Top.Add(menu,columnNames, columnAttributes);
             Application.Run();
 
 
