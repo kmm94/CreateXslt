@@ -1,6 +1,6 @@
 ﻿namespace CreateXslt
 {
-    public enum Datatype
+    public enum ExcelFilters
     {
         String,
         Number,
@@ -11,9 +11,9 @@
     {
         public string sqlQueryHeadline { get; set; }
         public string name { get; set; } 
-        public Datatype? datatype { get; set; }
+        public ExcelFilters? datatype { get; set; }
 
-        public Column(string sqlQueryHeadline, string name, Datatype? datatype = null)
+        public Column(string sqlQueryHeadline, string name, ExcelFilters? datatype = null)
         {
             this.sqlQueryHeadline = sqlQueryHeadline;
             this.name = name;

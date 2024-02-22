@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using CreateXslt.Views;
 using DataAccess;
 using NStack;
 using Terminal.Gui;
+using Attribute = Terminal.Gui.Attribute;
 
 namespace CreateXslt
 {
@@ -16,11 +18,62 @@ namespace CreateXslt
                 new List<string>() { ".csv" }, OpenDialog.OpenMode.File);
             openFileDialog.AllowsMultipleSelection = false;
 
+            
+            var columnNames = new Window("column Names")
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Percent(30),
+                Height = Dim.Fill() - 1,
+            };
+
+            var Landingpage = LandingPage.GetLandingPage();
+            
+            var columnAttributes = new Window("column Attributes")
+            {
+                X = Pos.Right(columnNames),
+                Y = 0,
+                Width = Dim.Percent(70),
+                Height = Dim.Fill() - 1
+            };
+
+            var sqlColumnheaderLabel = new Label("SQL column Header: ")
+            {
+                X = 1,
+                Y = 1,
+                CanFocus = false,
+            };
+            var sqlColumnheader = new Label("")
+            {
+                X = Pos.Right(sqlColumnheaderLabel),
+                Y = 1,
+                CanFocus = false,
+            };
+
+            var filtertypeRadioGroup = new RadioGroup(new ustring[]{nameof(ExcelFilters.Date), nameof(ExcelFilters.String), nameof(ExcelFilters.Number)})
+            {
+                X = 1,
+                Y = Pos.Bottom(sqlColumnheaderLabel),
+                DisplayMode = DisplayModeLayout.Horizontal
+            };
+            
+            //filtertypeRadioGroup.SelectedItemChanged += changedArgs => { changedArgs. }
+            
+            columnAttributes.Add(sqlColumnheaderLabel, sqlColumnheader, filtertypeRadioGroup);
+
+
             ListView columnListView = new ListView()
             {
                 Width = Dim.Fill(),
                 Height = Dim.Fill(),
             };
+
+            columnListView.SelectedItemChanged += (eventArgs) =>
+            {
+                Column c = (Column)eventArgs.Value;
+                sqlColumnheader.Text = c.sqlQueryHeadline;
+            };
+            
             ReportController reportController = new ReportController();
 
             var menu = new MenuBar(new MenuBarItem[]
@@ -44,24 +97,7 @@ namespace CreateXslt
 
                 }),
             });
-
-            var columnNames = new Window("column Names")
-            {
-                X = 0,
-                Y = 0,
-                Width = Dim.Percent(30),
-                Height = Dim.Fill() - 1
-            };
             
-            columnNames.Add(columnListView);
-            
-            var columnAttributes = new Window("column Attributes")
-            {
-                X = Pos.Right(columnNames),
-                Y = 0,
-                Width = Dim.Percent(70),
-                Height = Dim.Fill() - 1
-            };
             //TODO: Add Column attributes:
             //TODO: Display, Sql column name label
             //TODO: Input, Text field excel column headName
@@ -75,7 +111,7 @@ namespace CreateXslt
             //TODO: Logic, Generate ReportInput import to crm csv file
             //TODO: Logic, Generate select part of sql with castings for decimal numbers
 
-            
+            columnNames.Add(columnListView);
             Application.Top.Add(menu,columnNames, columnAttributes);
             Application.Run();
 
