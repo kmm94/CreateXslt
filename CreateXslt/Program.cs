@@ -39,7 +39,8 @@ namespace CreateXslt
             {
                 Width = Dim.Fill(),
                 Height = Dim.Fill(),
-                CanFocus = false
+                CanFocus = false,
+                AllowsMarking = false
             };
 
             var sqlColumnheaderLabel = new Label("SQL column Header: ")
@@ -48,6 +49,8 @@ namespace CreateXslt
                 Y = 1,
                 CanFocus = false,
             };
+            
+            //TODO: hotkeys to move to nex item 'KeystrokeNavigator'
             var sqlColumnheader = new Label("")
             {
                 X = Pos.Right(sqlColumnheaderLabel),
@@ -96,16 +99,34 @@ namespace CreateXslt
                 Y = Pos.Bottom(chooseReportInputRadioGroupLabel),
                 DisplayMode = DisplayModeLayout.Horizontal
             };
+            var exportButton = new Button("Export")
+            {
+                X = Pos.AnchorEnd() - 14,
+                Y = Pos.AnchorEnd()-3 ,
+            };
+
 
             excelFiltertypeRadioGroup.SelectedItemChanged += changedArgs => reportController.SetColumnExcelFilter(changedArgs.SelectedItem);
-            reportInputRadioGroup.SelectedItemChanged += changedArgs =>
-                reportController.SetColumnCrmInputType(changedArgs.SelectedItem);
+            reportInputRadioGroup.SelectedItemChanged += changedArgs => reportController.SetColumnCrmInputType(changedArgs.SelectedItem);
+            inputColumnTitle.KeyDown += ustring => reportController.selectedColumn.userColumnTitle = ustring.ToString();
+            columnListView.SelectedItemChanged += (eventArgs) => HandleSelectedColumn(eventArgs, reportController, sqlColumnheader, inputColumnTitle, excelFiltertypeRadioGroup);
 
-            inputColumnTitle.TextChanged +=
-                ustring => reportController.selectedColumn.userColumnTitle = ustring.ToString();
-
-            columnListView.SelectedItemChanged += (eventArgs) => HandleSelectedColumn(eventArgs, reportController, sqlColumnheader, inputColumnTitle);
-
+            exportButton.Clicked += () =>
+            {
+                FileDialog fileDialog = new FileDialog()
+                {
+                    Title = "Choose where to save file",
+                    Text = "Select directory",
+                    CanCreateDirectories = true,
+                };
+                Application.Run(fileDialog);
+                if (fileDialog.Canceled is false)
+                {
+                    File.WriteAllText(Path.Combine((string)fileDialog.DirectoryPath, $"{DateTime.Now.ToString("dd-MM-yyyy_HH-mm")}_XmlTransformationFile.xml"), 
+                        reportController.GenerateXmlTransformationFile());
+                }
+            };
+            
             columnAttributes.Add(
                 sqlColumnheaderLabel,
                 sqlColumnheader,
@@ -116,21 +137,21 @@ namespace CreateXslt
                 chooseReportInputRadioGroupLabel,
                 reportInputRadioGroup);
 
-            var exportButton = new Button("Export")
-            {
-                X = Pos.AnchorEnd() - 14,
-                Y = Pos.AnchorEnd()-3 ,
-            };
-            
             var topMenu = new MenuBar(new MenuBarItem[]
             {
                 new MenuBarItem("_File", new MenuItem[]
                 {
                     new MenuItem("open csv file", "", () =>
                     {
-                        OpenDialog openFileDialog = new OpenDialog("CSV", "Select the csv file produced by the sql",
-                            new List<string>() { ".csv" }, OpenDialog.OpenMode.File);
-                        openFileDialog.AllowsMultipleSelection = false;
+                        OpenDialog openFileDialog = new OpenDialog()
+                        {
+                            Title = "CSV",
+                            Text = "Select the csv file produced by the sql",
+                            AllowsMultipleSelection = false,
+                            AllowedFileTypes = new [] { ".csv" },
+                            CanChooseFiles = true,
+                            CanChooseDirectories = false
+                        };
                         Application.Run(openFileDialog);
                         if (openFileDialog.FilePaths.Count == 1)
                         {
@@ -141,6 +162,7 @@ namespace CreateXslt
                                 reportController.selectedColumn = reportController.GetExcelWorksheet().columns[0];
                                 sqlColumnheader.Text = reportController.selectedColumn._sqlQueryHeadline;
                                 inputColumnTitle.Text = reportController.selectedColumn.userColumnTitle;
+                                excelFiltertypeRadioGroup.SelectedItem = reportController.GetIndexOfExcelfilters(reportController.selectedColumn.excelFilter);
 
                                 Application.Top.Remove(Landingpage);
                                 Application.Top.Add(columnNames, columnAttributes, exportButton);
@@ -152,10 +174,9 @@ namespace CreateXslt
 
 
             //TODO: Add Column attributes:
-            //TODO: Input, Radiobuttons 'RapportInput' 
             //TODO: Display, ColumnName validation(Display Error)
             //TODO: Validation between filter and rapport input data types
-            //TODO: Logic, Guesstimate, filter type and report input type
+            //TODO: Logic, Guesstimate,CRM report input type
             //TODO: Logic, Generate XML transformation text
             //TODO: Logic, Generate ReportInput import to crm csv file
             //TODO: Logic, Generate select part of sql with castings for decimal numbers
@@ -166,12 +187,18 @@ namespace CreateXslt
         }
 
         private static void HandleSelectedColumn(ListViewItemEventArgs eventArgs, ReportController reportController,
-            Label sqlColumnheader, TextField inputColumnTitle)
+            Label sqlColumnheader, TextField inputColumnTitle, RadioGroup excelFiltertypeRadioGroup)
         {
-            Column selectedColumn = (Column)eventArgs.Value;
-            reportController.selectedColumn = selectedColumn;
-            sqlColumnheader.Text = selectedColumn._sqlQueryHeadline;
-            inputColumnTitle.Text = selectedColumn.userColumnTitle;
+            
+            Application.MainLoop.Invoke(() =>
+            {
+                Column selectedColumn = (Column)eventArgs.Value;
+                reportController.selectedColumn = selectedColumn;
+                sqlColumnheader.Text = selectedColumn._sqlQueryHeadline;
+                inputColumnTitle.Text = selectedColumn.userColumnTitle;
+                excelFiltertypeRadioGroup.SelectedItem =
+                    reportController.GetIndexOfExcelfilters(reportController.selectedColumn.excelFilter);
+            });
         }
 
 
