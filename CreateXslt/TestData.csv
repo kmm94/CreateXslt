@@ -1,6 +1,6 @@
-﻿FullName;dm_alder;Fødselsesdag;dm_forbrugte_timer;dm_ledighedstimer
-Peter Hansen;23;01/01/2000;23.1;213,23
-Brigitte jensen;12;01/03/1999;1982.2;834,2
-Hans peter;68;01/03/1999;1982,2;24
-Daniel hansen;89;01/03/1999;145;234,2
-Peter Møller;36;23/04/1989;234.23;643,3
+﻿FullName;dm_alder;Foedselsesdag;dm_forbrugte_timer;dm_ledighedstimer;dm_beskaeftigelses_timeforbrug
+Peter Hansen;23;01/01/2000;23.1;213,23;123
+Brigitte jensen;12;01/03/1999;1982.2;834,2;324
+Hans peter;68;01/03/1999;1982,2;24;23
+Daniel hansen;89;01/03/1999;145;234,2;43
+Peter Møller;36;23/04/1989;234.23;643,3;533
