@@ -16,3 +16,5 @@ Following is whats missing:
             //TODO: Logic, Generate XML transformation text
             //TODO: Logic, Generate ReportInput import to crm csv file
             //TODO: Logic, Generate select part of sql with castings for decimal numbers
+
+![image](https://github.com/kmm94/CreateXslt/assets/18572991/45e38ae0-d7e4-48f9-973a-67f53ca69571)
