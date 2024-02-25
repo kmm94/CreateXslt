@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using CreateXslt.Views;
 using DataAccess;
-using NStack;
 using Terminal.Gui;
-using Attribute = Terminal.Gui.Attribute;
 
 namespace CreateXslt
 {
@@ -17,24 +12,59 @@ namespace CreateXslt
             ReportController reportController = new ReportController();
 
 
-            var columnNames = new Window("column Names")
+            var columnNames = new Window("Columns")
             {
                 X = 0,
                 Y = 0,
-                Width = Dim.Percent(30),
+                Width = Dim.Percent(25),
                 Height = Dim.Fill() - 1,
             };
-
-            var Landingpage = LandingPage.GetLandingPage();
+            var mainPage = new Window("Dansk metal Rapport generator")
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Percent(100),
+                Height = Dim.Fill() - 1,
+                TextAlignment = TextAlignment.Centered,
+                //TextFormatter = new TextFormatter() {Size = new Size(1, 10)}
+            };
+            
+            var landingText = new TextView()
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                Text = textHelper.GetLandingPageText(),
+                ReadOnly = true,
+            };
+            
+            mainPage.Add(landingText);
+            
 
             var columnAttributes = new Window("column Attributes")
             {
                 X = Pos.Right(columnNames),
                 Y = 0,
-                Width = Dim.Percent(70),
+                Width = Dim.Percent(60),
                 Height = Dim.Fill() - 1
             };
-
+            
+            var columnData = new Window("column data")
+            {
+                X = Pos.Right(columnAttributes),
+                Y = 0,
+                Width = Dim.Percent(15),
+                Height = Dim.Fill() - 1,
+            };
+            ListView columnDataListView = new ListView()
+            {
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                CanFocus = false,
+                AllowsMarking = false,
+            };
+            
             ListView columnListView = new ListView()
             {
                 Width = Dim.Fill(),
@@ -102,28 +132,29 @@ namespace CreateXslt
             var exportButton = new Button("Export")
             {
                 X = Pos.AnchorEnd() - 14,
-                Y = Pos.AnchorEnd()-3 ,
+                Y = Pos.AnchorEnd(1) ,
             };
 
 
             excelFiltertypeRadioGroup.SelectedItemChanged += changedArgs => reportController.SetColumnExcelFilter(changedArgs.SelectedItem);
             reportInputRadioGroup.SelectedItemChanged += changedArgs => reportController.SetColumnCrmInputType(changedArgs.SelectedItem);
             inputColumnTitle.KeyDown += ustring => reportController.selectedColumn.userColumnTitle = ustring.ToString();
-            columnListView.SelectedItemChanged += (eventArgs) => HandleSelectedColumn(eventArgs, reportController, sqlColumnheader, inputColumnTitle, excelFiltertypeRadioGroup);
+            columnListView.SelectedItemChanged += (eventArgs) => HandleSelectedColumn(eventArgs, reportController, sqlColumnheader, inputColumnTitle, excelFiltertypeRadioGroup, columnDataListView);
 
             exportButton.Clicked += () =>
             {
-                FileDialog fileDialog = new FileDialog()
+                OpenDialog fileDialog = new OpenDialog()
                 {
                     Title = "Choose where to save file",
-                    Text = "Select directory",
+                    Text = "Select a directory",
                     CanCreateDirectories = true,
+                    CanChooseFiles = false,
+                    CanChooseDirectories = true
                 };
                 Application.Run(fileDialog);
                 if (fileDialog.Canceled is false)
                 {
-                    File.WriteAllText(Path.Combine((string)fileDialog.DirectoryPath, $"{DateTime.Now.ToString("dd-MM-yyyy_HH-mm")}_XmlTransformationFile.xml"), 
-                        reportController.GenerateXmlTransformationFile());
+                    reportController.XmlHelper.GenerateXmlTransformationFile(reportController.GetExcelWorksheet(),(string)fileDialog.FilePath + $"\\{DateTime.Now.ToString("dd-MM-yyyy_HH-mm")}_XmlTransformationFile.xml");
                 }
             };
             
@@ -136,6 +167,8 @@ namespace CreateXslt
                 inputColumnTitle,
                 chooseReportInputRadioGroupLabel,
                 reportInputRadioGroup);
+            
+            columnData.Add(columnDataListView);
 
             var topMenu = new MenuBar(new MenuBarItem[]
             {
@@ -163,9 +196,11 @@ namespace CreateXslt
                                 sqlColumnheader.Text = reportController.selectedColumn._sqlQueryHeadline;
                                 inputColumnTitle.Text = reportController.selectedColumn.userColumnTitle;
                                 excelFiltertypeRadioGroup.SelectedItem = reportController.GetIndexOfExcelfilters(reportController.selectedColumn.excelFilter);
-
-                                Application.Top.Remove(Landingpage);
-                                Application.Top.Add(columnNames, columnAttributes, exportButton);
+                                columnDataListView.SetSource(reportController.selectedColumn._rawData);
+                                
+                                mainPage.Remove(landingText);
+                                mainPage.Add(columnNames, columnAttributes, columnData,exportButton);
+                                
                             });
                         }
                     })
@@ -177,17 +212,17 @@ namespace CreateXslt
             //TODO: Display, ColumnName validation(Display Error)
             //TODO: Validation between filter and rapport input data types
             //TODO: Logic, Guesstimate,CRM report input type
-            //TODO: Logic, Generate XML transformation text
             //TODO: Logic, Generate ReportInput import to crm csv file
-            //TODO: Logic, Generate select part of sql with castings for decimal numbers
+            //TODO: Logic, Generate select part of sql with castings for decimal numbers (is this possible)? 
 
             columnNames.Add(columnListView);
-            Application.Top.Add(topMenu, Landingpage);
+            Application.Top.Add(topMenu, mainPage);
             Application.Run();
         }
 
         private static void HandleSelectedColumn(ListViewItemEventArgs eventArgs, ReportController reportController,
-            Label sqlColumnheader, TextField inputColumnTitle, RadioGroup excelFiltertypeRadioGroup)
+            Label sqlColumnheader, TextField inputColumnTitle, RadioGroup excelFiltertypeRadioGroup,
+            ListView columnDataListView)
         {
             
             Application.MainLoop.Invoke(() =>
@@ -196,292 +231,9 @@ namespace CreateXslt
                 reportController.selectedColumn = selectedColumn;
                 sqlColumnheader.Text = selectedColumn._sqlQueryHeadline;
                 inputColumnTitle.Text = selectedColumn.userColumnTitle;
-                excelFiltertypeRadioGroup.SelectedItem =
-                    reportController.GetIndexOfExcelfilters(reportController.selectedColumn.excelFilter);
+                excelFiltertypeRadioGroup.SelectedItem = reportController.GetIndexOfExcelfilters(reportController.selectedColumn.excelFilter);
+                columnDataListView.SetSource(selectedColumn._rawData);
             });
         }
-
-
-/*
-            foreach (Column column in excelWorksheet.columns)
-            {
-                bool IsHandlingColumn = true;
-                while (IsHandlingColumn)
-                {
-                    Console.WriteLine("\n---- o ---- o ---- o ----");
-                    Console.WriteLine($"Handling column: {column.name}");
-                    Console.WriteLine($"Rename column? Y/N");
-                    var input = Console.ReadLine();
-                    if ("y".Equals(input, StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine($"Write the new column name:");
-                        column.name = Console.ReadLine();
-                    }
-
-                    Console.WriteLine($"What is the datatype of the column? {GetAllDatatypes()}");
-                    Datatype datatype;
-                    bool isValid = false;
-                    do
-                    {
-                        isValid = Enum.TryParse(Console.ReadLine(), out datatype);
-                        if (!isValid)
-                        {
-                            Console.WriteLine("That datatype doesn't exists");
-                        }
-                    } while (!isValid);
-
-                    column.datatype = datatype;
-                    Console.WriteLine("\nResume");
-                    Console.WriteLine($"column name: {column.name}");
-                    Console.WriteLine($"column name: {column.datatype.ToString()}");
-                    Console.WriteLine("Satisfied? Y/N");
-                    input = Console.ReadLine(); 
-                    if ("y".Equals(input, StringComparison.OrdinalIgnoreCase))
-                    {
-                        IsHandlingColumn = false;
-                    }
-
-                }
-
-
-            }
-                            CreateReportInputImportFile(excelWorksheet);
-                
-                string shitXsl = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                                 "\n<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:msxsl=\"urn:schemas-microsoft-com:xslt\" exclude-result-prefixes=\"msxsl\">" +
-                                 "\n                <xsl:output method=\"xml\" indent=\"yes\" omit-xml-declaration=\"no\"/>" +
-                                 "\n                <xsl:template match=\"/\">" +
-                                 "\n                                <!--Sæt <?mso-application progid=\"Excel.Sheet\"?>-->" +
-                                 "\n                                <xsl:processing-instruction name=\"mso-application\">progid=\"Excel.Sheet\"</xsl:processing-instruction>" +
-                                 "\n                                <Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:html=\"http://www.w3.org/TR/REC-html40\">" +
-                                 "\n                                                <DocumentProperties xmlns=\"urn:schemas-microsoft-com:office:office\">" +
-                                 "\n                                                                <Author>Netcompany</Author>" +
-                                 "\n                                                                <LastAuthor>karm@netcompany.com</LastAuthor>" +
-                                 "\n                                                                <Created>2024-02-19T00:00:00Z</Created>" +
-                                 "\n                                                                <LastSaved>2024-02-19T00:00:00Z</LastSaved>" +
-                                 "\n                                                                <Version>1.00</Version>" +
-                                 "\n                                                </DocumentProperties>" +
-                                 "\n                                                <OfficeDocumentSettings xmlns=\"urn:schemas-microsoft-com:office:office\">" +
-                                 "\n                                                                <AllowPNG/>" +
-                                 "\n                                                </OfficeDocumentSettings>" +
-                                 "\n                                                <ExcelWorkbook xmlns=\"urn:schemas-microsoft-com:office:excel\">" +
-                                 "\n                                                                <WindowHeight>8550</WindowHeight>" +
-                                 "\n                                                                <WindowWidth>19410</WindowWidth>" +
-                                 "\n                                                                <WindowTopX>0</WindowTopX>" +
-                                 "\n                                                                <WindowTopY>0</WindowTopY>" +
-                                 "\n                                                                <ProtectStructure>False</ProtectStructure>" +
-                                 "\n                                                                <ProtectWindows>False</ProtectWindows>" +
-                                 "\n                                                </ExcelWorkbook>" +
-                                 "\n                                                <Styles>" +
-                                 "\n                                                                <Style ss:ID=\"Default\" ss:Name=\"Normal\">" +
-                                 "\n                                                                                <Alignment ss:Vertical=\"Bottom\"/>" +
-                                 "\n                                                                                <Borders/>" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#000000\"/>" +
-                                 "\n                                                                                <Interior/>" +
-                                 "\n                                                                                <NumberFormat/>" +
-                                 "\n                                                                                <Protection/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s62\">" +
-                                 "\n                                                                                <Alignment ss:Vertical=\"Center\"/>" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"14\" ss:Color=\"#000000\" ss:Bold=\"1\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s63\">" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#FFFFFF\" ss:Bold=\"1\"/>" +
-                                 "\n                                                                                <Interior ss:Color=\"#2F75B5\" ss:Pattern=\"Solid\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s64\">" +
-                                 "\n                                                                                <NumberFormat ss:Format=\"Standard\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s65\">" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#000000\" ss:Bold=\"1\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s66\">" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#000000\" ss:Bold=\"1\"/>" +
-                                 "\n                                                                                <NumberFormat ss:Format=\"Standard\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s67\">" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#000000\" ss:Bold=\"1\"/>" +
-                                 "\n                                                                                <Interior ss:Color=\"#E7E6E6\" ss:Pattern=\"Solid\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s68\">" +
-                                 "\n                                                                                <Font ss:FontName=\"Calibri\" x:Family=\"Swiss\" ss:Size=\"11\" ss:Color=\"#000000\" ss:Bold=\"1\"/>" +
-                                 "\n                                                                                <Interior ss:Color=\"#E7E6E6\" ss:Pattern=\"Solid\"/>" +
-                                 "\n                                                                                <NumberFormat ss:Format=\"Standard\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s69\">" +
-                                 "\n                                                                                <NumberFormat ss:Format=\"Short Date\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                                <Style ss:ID=\"s70\">" +
-                                 "\n                                                                                <NumberFormat ss:Format=\"@\"/>" +
-                                 "\n                                                                </Style>" +
-                                 "\n                                                </Styles>" +
-                                 $"\n                                                <Worksheet ss:Name=\"{excelWorksheet.name}\">" +
-                                 "\n                                                                <Names>" +
-                                 $"\n                                                                                <NamedRange ss:Name=\"_FilterDatabase\" ss:RefersTo=\"={excelWorksheet.name}!R2C1:R[{{count(/ReportDto/ReportRows)}}]C11\" ss:Hidden=\"1\"/>" +
-                                 "\n                                                                </Names>" +
-                                 "\n                                                                <Table  x:FullColumns=\"1\" x:FullRows=\"1\" ss:DefaultRowHeight=\"15\">" +
-                                 $"\n{GetXslColumns(excelWorksheet.columns)}" +
-                                 "\n                                                                                <Row ss:AutoFitHeight=\"0\" ss:Height=\"18.75\">" +
-                                 "\n                                                                                                <Cell ss:StyleID=\"s62\">" +
-                                 "\n                                                                                                                <Data ss:Type=\"String\">Begrænsninger på medlemmer</Data>" +
-                                 "\n                                                                                                </Cell>" +
-                                 "\n                                                                                </Row>" +
-                                 "\n                                                                                <Row ss:AutoFitHeight=\"0\">" +
-                                 $"\n{GetXslHeaders(excelWorksheet.columns)}"+
-                                 "\n                                                                                </Row>" +
-                                 "\n                                                                                <xsl:for-each select=\"ReportDto/ReportRows/Row\">" +
-                                 "\n                                                                                                                <Row ss:AutoFitHeight=\"0\">" +
-                                 $"\n{GetSqlHeadline(excelWorksheet.columns)}"+
-                                 "\n                                                                                                                </Row>" +
-                                 "\n                                                                                </xsl:for-each>" +
-                                 "\n                                                                </Table>" +
-                                 "\n                                                                <WorksheetOptions xmlns=\"urn:schemas-microsoft-com:office:excel\">" +
-                                 "\n                                                                                <PageSetup>" +
-                                 "\n                                                                                                <Header x:Margin=\"0.3\"/>" +
-                                 "\n                                                                                                <Footer x:Margin=\"0.3\"/>" +
-                                 "\n                                                                                                <PageMargins x:Bottom=\"0.75\" x:Left=\"0.7\" x:Right=\"0.7\" x:Top=\"0.75\"/>" +
-                                 "\n                                                                                </PageSetup>" +
-                                 "\n                                                                                <Unsynced/>" +
-                                 "\n                                                                                <Print>" +
-                                 "\n                                                                                                <ValidPrinterInfo/>" +
-                                 "\n                                                                                                <PaperSizeIndex>9</PaperSizeIndex>" +
-                                 "\n                                                                                                <HorizontalResolution>600</HorizontalResolution>" +
-                                 "\n                                                                                                <VerticalResolution>600</VerticalResolution>" +
-                                 "\n                                                                                </Print>" +
-                                 "\n                                                                                <Selected/>" +
-                                 "\n                                                                                <ProtectObjects>False</ProtectObjects>" +
-                                 "\n                                                                                <ProtectScenarios>False</ProtectScenarios>" +
-                                 "\n                                                                </WorksheetOptions>" +
-                                 "\n                                                                <xsl:if test=\"count(/ReportDto/ReportRows/Row) != 0\">" +
-                                 "\n                                                                                <AutoFilter x:Range=\"R2C1:R[{count(/ReportDto/ReportRows/Row)}]" +
-                                 $"C{excelWorksheet.columns.Count}\"" +
-                                 " xmlns=\"urn:schemas-microsoft-com:office:excel\">" +
-                                 "\n                                                                                </AutoFilter>" +
-                                 "\n                                                                </xsl:if>" +
-                                 "\n                                                </Worksheet>" +
-                                 "\n                                </Workbook>" +
-                                 "\n                </xsl:template>" +
-                                 "\n</xsl:stylesheet>";
-                
-
-                // Write the text to a new file named "WriteFile.txt".
-                File.WriteAllText( "WriteFile.xml", shitXsl);
-                */
-
-
-        /*
-
-        private static void CreateReportInputImportFile(ExcelWorksheet excelWorksheet)
-        {
-            List<CRMReportInput> crmReportInputs = new List<CRMReportInput>();
-            excelWorksheet.columns.ForEach(column => crmReportInputs.Add(GetCrmReportInput(column)));
-            
-            var csv = DataTable.New.FromEnumerable(crmReportInputs);
-            csv.SaveCSV("./CRMRapport Input.csv");
-        }
-
-        private static CRMReportInput GetCrmReportInput(Column column)
-        {
-            switch (column.datatype)
-            {
-                case Datatype.String:
-                    return CreateCrmReportInput(column, "Text");
-                case Datatype.Date:
-                    return CreateCrmReportInput(column, "Dato");
-                case Datatype.Number:
-                    return CreateCrmReportInput(column, "Decimaltal");
-                default:
-                    return CreateCrmReportInput(column, "Text");
-            }
-        }
-
-        private static CRMReportInput CreateCrmReportInput(Column column, string inputtype)
-        {
-            return new CRMReportInput()
-            {
-                navn = column.sqlQueryHeadline,
-                visningsnavn = column.sqlQueryHeadline,
-                Inputype = inputtype
-            };
-        }
-
-        private static string GetAllDatatypes()
-        {
-            string DatatypesText = "";
-
-            foreach (var datatypes in Enum.GetNames(typeof(Datatype)))
-            {
-                DatatypesText += $"{datatypes}, ";
-            }
-
-            return DatatypesText;
-        }
-
-
-        private static string GetXslColumns(List<Column> reportColumns)
-        {
-            string columnText = "";
-
-            foreach (Column reportColumn in reportColumns)
-            {
-                columnText += "\n                                                                                <Column ss:AutoFitWidth=\"0\" ss:Width=\"100\"/>";
-            }
-
-            return columnText;
-        }
-        
-        private static string GetXslHeaders(List<Column> reportColumns)
-        {
-            string columnText = "";
-
-            foreach (Column reportColumn in reportColumns)
-            {
-                columnText +=
-                    "\n                                                                                                <Cell ss:StyleID=\"s63\">" +
-                    $"\n                                                                                                                <Data ss:Type=\"String\">{reportColumn.name}</Data>" +
-                    "\n                                                                                                                <NamedCell ss:Name=\"_FilterDatabase\"/>" +
-                    "\n                                                                                                </Cell>";
-            }
-
-            return columnText;
-        }
-        
-        
-        private static string GetSqlHeadline(List<Column> reportColumns)
-        {
-            string columnText = "";
-
-            foreach (Column reportColumn in reportColumns)
-            {
-
-                if (Datatype.Date == reportColumn.datatype)
-                {
-                    columnText += "<Cell ss:StyleID=\"s69\">\n" +
-                                  "                            <xsl:choose>\n" +
-                                  $"                                <xsl:when test=\"{reportColumn.sqlQueryHeadline} != ''\">\n" +
-                                  "                                    <Data ss:Type=\"DateTime\">\n" +
-                                  $"                                        <xsl:value-of select=\"{reportColumn.sqlQueryHeadline}\"/>\n" +
-                                  "                                    </Data>\n" +
-                                  "                                </xsl:when>\n" +
-                                  "                            </xsl:choose>\n" +
-                                  "                            <NamedCell ss:Name=\"_FilterDatabase\"/>\n" +
-                                  "                        </Cell>";
-                }
-                else if(Datatype.String == reportColumn.datatype || Datatype.Number == reportColumn.datatype)
-                {
-                    columnText +=
-                        "\n                                                                                                                                <Cell>" +
-                        $"\n                                                                                                                                                <Data ss:Type=\"{reportColumn.datatype}\">" +
-                        $"\n                                                                                                                                                                <xsl:value-of select=\"{reportColumn.sqlQueryHeadline}\"/>" +
-                        "\n                                                                                                                                                </Data>" +
-                        "\n                                                                                                                                                <NamedCell ss:Name=\"_FilterDatabase\"/>" +
-                        "\n                                                                                                                                </Cell>";
-                }
-            }
-
-            return columnText;
-        }
-    }
-    */
     }
 }

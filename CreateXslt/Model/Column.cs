@@ -28,16 +28,17 @@ namespace CreateXslt
         
         public string sqlSelectTitle { get; private set; }
         
-        public List<string> rawData { get; }
+        public List<string> _rawData { get; }
         public CrmReportInputType CrmReportInputType { get; set; }
 
         public Column(string sqlQueryHeadline, List<string> rawData)
         {
-            this._sqlQueryHeadline = sqlQueryHeadline;
-            this.userColumnTitle = GuesstimateColumnTitle(sqlQueryHeadline);
-            this.excelFilter = GuesstimateDataType(rawData);
-            this.CrmReportInputType = GuesstimateReportInput(rawData);
-            this.sqlSelectTitle = GenerateSqlSelect(this);
+            _sqlQueryHeadline = sqlQueryHeadline;
+            userColumnTitle = GuesstimateColumnTitle(sqlQueryHeadline);
+            excelFilter = GuesstimateDataType(rawData);
+            CrmReportInputType = GuesstimateReportInput(rawData);
+            sqlSelectTitle = GenerateSqlSelect(this);
+            _rawData = rawData;
         }
 
         private string GenerateSqlSelect(Column column)
@@ -61,15 +62,15 @@ namespace CreateXslt
                 return filterProbability.Key;
             }
 
-            return CreateXslt.ExcelFilter.String;
+            return ExcelFilter.String;
         }
 
         private KeyValuePair<ExcelFilter, double> GetHigestExcelFilterProbability(List<string> list)
         {
-            Dictionary<ExcelFilter, double> filterProbability = new Dictionary<ExcelFilter, double>()
+            Dictionary<ExcelFilter, double> filterProbability = new Dictionary<ExcelFilter, double>
             {
-                { CreateXslt.ExcelFilter.Date, 0},
-                { CreateXslt.ExcelFilter.Number, 0}
+                { ExcelFilter.Date, 0},
+                { ExcelFilter.Number, 0}
             };
             List<ExcelFilter> checkFilters = new List<ExcelFilter>(filterProbability.Keys);
             foreach (ExcelFilter excelFilter in checkFilters)
@@ -98,14 +99,14 @@ namespace CreateXslt
         {
             switch(excelFilter)
             {
-                case CreateXslt.ExcelFilter.Date:
+                case ExcelFilter.Date:
                     return GetProbabilityForDate(list);
-                case CreateXslt.ExcelFilter.Number:
+                case ExcelFilter.Number:
                     return GetProbabilityForNumber(list);
-                case CreateXslt.ExcelFilter.String:
+                case ExcelFilter.String:
                     return 100;
                 default:
-                    throw new NotImplementedException($"datatype not implemented: {nameof(excelFilter)}");
+                    throw new Exception($"datatype not implemented: {nameof(excelFilter)}");
             }
         }
 
