@@ -9,7 +9,7 @@ namespace CreateXslt
         
         public string specialFirstLine { get; set; }
 
-        public ExcelWorksheet(List<Column> columns, string name)
+        public ExcelWorksheet(List<Column> columns, string name = "Data")
         {
             this.columns = columns;
             this.name = name;

@@ -155,7 +155,8 @@ public class XmlHelper
         XmlElement namedRange = xmlDoc.CreateElement("NamedRange", "urna:schemas-microsoft-com:office:spreadsheet");
         namedRange.SetAttribute("Name", "urn:schemas-microsoft-com:office:spreadsheet","_FilterDatabase");
         namedRange.SetAttribute("RefersTo","urn:schemas-microsoft-com:office:spreadsheet",
-            "=Test!R2C1:R[{count(/ReportDto/ReportRows)}]" +
+            $"={excelWorksheet.name}" +
+            "!R2C1:R[{count(/ReportDto/ReportRows)}]" +
             $"C{excelWorksheet.columns.Count}"); 
         namedRange.SetAttribute("Hidden", "urn:schemas-microsoft-com:office:spreadsheet","1");
         names.AppendChild(namedRange);
@@ -290,7 +291,7 @@ public class XmlHelper
 
         // Create xsl:if element
         XmlElement xslIf = xmlDoc.CreateElement("xsl", "if", "http://www.w3.org/1999/XSL/Transform");
-        xslIf.SetAttribute("test", "count(/ReportDto/ReportRows/Row) != 0"); //reportname
+        xslIf.SetAttribute(excelWorksheet.name, "count(/ReportDto/ReportRows/Row) != 0"); //reportname
         worksheet.AppendChild(xslIf);
 
         // Inside xsl:if, create AutoFilter element
