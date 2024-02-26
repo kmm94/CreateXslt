@@ -214,8 +214,8 @@ public class XmlHelper
 
         foreach (Column excelWorksheetColumn in excelWorksheet.columns)
         {
-            var cellElement = CellElement(xmlDoc, rowElement, excelWorksheetColumn);
-            cellElement.AppendChild(cellElement);
+            var cellElement = CellElement(xmlDoc, rowElement, excelWorksheetColumn, excelWorksheet.name);
+            rowElement.AppendChild(cellElement);
         }
         
 
@@ -311,28 +311,63 @@ public class XmlHelper
         return column;
     }
 
-    private XmlElement CellElement(XmlDocument xmlDoc, XmlElement rowElement, Column excelWorksheetColumn)
+    private XmlElement CellElement(XmlDocument xmlDoc, XmlElement rowElement, Column excelWorksheetColumn, string name)
     {
-        // Create Cells within the Row
-        XmlElement cellElement = xmlDoc.CreateElement("Cell", "urn:schemas-microsoft-com:office:spreadsheet");
-        rowElement.AppendChild(cellElement);
+        if (excelWorksheetColumn.excelFilter == ExcelFilter.String ||
+            excelWorksheetColumn.excelFilter == ExcelFilter.Number)
+        {
+            // Create Cells within the Row
+            XmlElement cellElement = xmlDoc.CreateElement("Cell", "urn:schemas-microsoft-com:office:spreadsheet");
+            rowElement.AppendChild(cellElement);
 
-        // Create Data within the Cell
-        XmlElement dataElement = xmlDoc.CreateElement("Data", "urn:schemas-microsoft-com:office:spreadsheet");
-        dataElement.SetAttribute("Type", "urn:schemas-microsoft-com:office:spreadsheet",
-            excelWorksheetColumn.excelFilter.ToString());
+            // Create Data within the Cell
+            XmlElement dataElement = xmlDoc.CreateElement("Data", "urn:schemas-microsoft-com:office:spreadsheet");
+            dataElement.SetAttribute("Type", "urn:schemas-microsoft-com:office:spreadsheet",
+                excelWorksheetColumn.excelFilter.ToString());
 
-        // Create xsl:value-of element inside Data
-        XmlElement valueOfElement = xmlDoc.CreateElement("xsl", "value-of", "http://www.w3.org/1999/XSL/Transform");
-        valueOfElement.SetAttribute("select", excelWorksheetColumn._sqlQueryHeadline);
-        dataElement.AppendChild(valueOfElement);
-        
-        // Create NamedCell inside Cell
-        XmlElement namedCellElement =
-            xmlDoc.CreateElement("NamedCell", "urn:schemas-microsoft-com:office:spreadsheet");
-        namedCellElement.SetAttribute("Name","urn:schemas-microsoft-com:office:spreadsheet", "_FilterDatabase");
-        cellElement.AppendChild(namedCellElement);
-        return cellElement;
+            // Create xsl:value-of element inside Data
+            XmlElement valueOfElement = xmlDoc.CreateElement("xsl", "value-of", "http://www.w3.org/1999/XSL/Transform");
+            valueOfElement.SetAttribute("select", excelWorksheetColumn._sqlQueryHeadline);
+            dataElement.AppendChild(valueOfElement);
+
+            // Create NamedCell inside Cell
+            XmlElement namedCellElement =
+                xmlDoc.CreateElement("NamedCell", "urn:schemas-microsoft-com:office:spreadsheet");
+            namedCellElement.SetAttribute("Name", "urn:schemas-microsoft-com:office:spreadsheet", "_FilterDatabase");
+            cellElement.AppendChild(dataElement);
+            cellElement.AppendChild(namedCellElement);
+            return cellElement;
+        }
+
+        if (excelWorksheetColumn.excelFilter == ExcelFilter.Date)
+        {
+            XmlElement cellElement = xmlDoc.CreateElement("Cell");
+            cellElement.SetAttribute("ss:StyleID", "s69");
+            xmlDoc.AppendChild(cellElement);
+
+            XmlElement xslChooseElement = xmlDoc.CreateElement("xsl:choose");
+            cellElement.AppendChild(xslChooseElement);
+
+            XmlElement xslWhenElement = xmlDoc.CreateElement("xsl:when");
+            xslWhenElement.SetAttribute(name, $"{excelWorksheetColumn._sqlQueryHeadline} != ''");
+            xslChooseElement.AppendChild(xslWhenElement);
+
+            XmlElement dataElement = xmlDoc.CreateElement("Data");
+            dataElement.SetAttribute("ss:Type", "DateTime");
+            xslWhenElement.AppendChild(dataElement);
+
+            XmlElement xslValueElement = xmlDoc.CreateElement("xsl:value-of");
+            xslValueElement.SetAttribute("select", "Ansvar_startdato");
+            dataElement.AppendChild(xslValueElement);
+
+            XmlElement namedCellElement = xmlDoc.CreateElement("NamedCell");
+            namedCellElement.SetAttribute("ss:Name", "_FilterDatabase");
+            cellElement.AppendChild(namedCellElement);
+            return cellElement;
+        }
+        XmlElement cellErrorElement = xmlDoc.CreateElement("Cell", "urn:schemas-microsoft-com:office:spreadsheet");
+        rowElement.AppendChild(cellErrorElement);
+        return cellErrorElement;
     }
 
     private XmlElement RowColTitleElement(XmlDocument xmlDoc, Column excelWorksheetColumn)
