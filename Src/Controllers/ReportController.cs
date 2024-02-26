@@ -1,5 +1,6 @@
 using DataAccess;
 using NStack;
+using System.Collections.Concurrent;
 using Row = DataAccess.Row;
 
 namespace CreateXslt
@@ -39,29 +40,29 @@ namespace CreateXslt
 
         public List<ustring> GetExcelfilters()
         {
-            return new List<ustring>()
-            {
+            return
+            [
                 nameof(ExcelFilter.String),
                 nameof(ExcelFilter.Date),
                 nameof(ExcelFilter.Number)
-            };
+            ];
         }
 
         public List<ustring> GetCrmReportInputType()
         {
-            return new List<ustring>()
-            {
+            return
+            [
                 nameof(CrmReportInputType.Text),
                 nameof(CrmReportInputType.Dato),
                 nameof(CrmReportInputType.Decimal),
                 nameof(CrmReportInputType.Int),
                 nameof(CrmReportInputType.Long)
-            };
+            ];
         }
 
         private List<Column> BuildColumns(DataTable dataTable)
         {
-            ConcurrentBag<Column> columns = new ConcurrentBag<Column>();
+            ConcurrentBag<Column> columns = [];
 
             Parallel.ForEach(dataTable.ColumnNames,
                 columnName =>
@@ -75,7 +76,7 @@ namespace CreateXslt
         private List<string> GetRawDateFromColumn(DataTable dataTable, string columnName)
         {
             var colIndex = dataTable.GetColumnIndex(columnName);
-            List<string> rawDate = new List<string>();
+            List<string> rawDate = [];
             
             foreach (Row row in dataTable.Rows)
             {
