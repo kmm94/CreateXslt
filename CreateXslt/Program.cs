@@ -19,7 +19,7 @@ namespace CreateXslt
                 Width = Dim.Percent(25),
                 Height = Dim.Fill() - 1,
             };
-            var mainPage = new Window("Dansk metal Rapport generator")
+            var mainPage = new Window("DM Rapport accelerator")
             {
                 X = 0,
                 Y = 0,
