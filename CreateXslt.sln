@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreateXslt", "CreateXslt\CreateXslt.csproj", "{2BC6EF42-99C7-46E9-AD9E-53C649B420B1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreateXslt", "Src\CreateXslt.csproj", "{2BC6EF42-99C7-46E9-AD9E-53C649B420B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
