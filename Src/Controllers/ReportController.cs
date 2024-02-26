@@ -1,4 +1,4 @@
-﻿using DataAccess;
+using DataAccess;
 using NStack;
 using Row = DataAccess.Row;
 
@@ -61,24 +61,26 @@ namespace CreateXslt
 
         private List<Column> BuildColumns(DataTable dataTable)
         {
-            List<Column> columns = new List<Column>();
+            ConcurrentBag<Column> columns = new ConcurrentBag<Column>();
 
-            foreach (string columnName in dataTable.ColumnNames)
-            {
-                columns.Add(new Column(columnName, GetRawDateFromColumn(dataTable, columnName)));
-            }
-
-            return columns;
+            Parallel.ForEach(dataTable.ColumnNames,
+                columnName =>
+                {
+                    columns.Add(new Column(columnName, GetRawDateFromColumn(dataTable, columnName)));
+                });
+            
+            return columns.ToList();
         }
 
         private List<string> GetRawDateFromColumn(DataTable dataTable, string columnName)
         {
             var colIndex = dataTable.GetColumnIndex(columnName);
             List<string> rawDate = new List<string>();
+            
             foreach (Row row in dataTable.Rows)
             {
                 var colData = row.Values[colIndex];
-                if (string.IsNullOrEmpty(colData) is false)
+                if (string.IsNullOrEmpty(colData) is false || string.Equals("NULL", colData) is false)
                 {
                     rawDate.Add(colData);
                 }
